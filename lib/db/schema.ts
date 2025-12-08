@@ -84,6 +84,7 @@ export const groups = pgTable('groups', {
   coverImageUrl: text('cover_image_url'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  archived: boolean('archived').default(false).notNull(),
 });
 
 export const usersToGroups = pgTable(

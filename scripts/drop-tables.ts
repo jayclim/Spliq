@@ -5,6 +5,7 @@ async function dropTables() {
     console.log('🔥 Dropping all tables...');
     try {
         // Disable foreign key checks to allow dropping tables in any order
+        await db.execute(sql`DROP SCHEMA IF EXISTS drizzle CASCADE;`);
         await db.execute(sql`DROP SCHEMA public CASCADE;`);
         await db.execute(sql`CREATE SCHEMA public;`);
         await db.execute(sql`GRANT ALL ON SCHEMA public TO postgres;`);

@@ -12,10 +12,14 @@ import { GroupSettingsModal } from '@/components/GroupSettingsModal';
 import { ExpenseHistory } from '@/components/ExpenseHistory';
 import { ArrowLeft } from 'lucide-react';
 import { useGroup, useGroupBalances, useGroupExpenses, useGroupMessages } from '@/hooks/useGroupDetails';
-import { type Balance } from '@/lib/actions/groups';
+import { type Balance, archiveGroup } from '@/lib/actions/groups';
 import { useUser } from '@clerk/nextjs';
 import { Card, CardContent } from '@/components/ui/card';
 import { SettleUpModal } from '@/components/SettleUpModal';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Trash2 } from 'lucide-react';
 
 interface GroupDetailClientProps {
   id: string;
@@ -38,6 +42,9 @@ export function GroupDetailClient({ id }: GroupDetailClientProps) {
   const [aiModalOpen, setAiModalOpen] = useState(false);
   const [manualModalOpen, setManualModalOpen] = useState(false);
   const [settleUpModalOpen, setSettleUpModalOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
   const [selectedBalance, setSelectedBalance] = useState<Balance | null>(null);
   const [activeTab, setActiveTab] = useState("history");
 
@@ -321,6 +328,46 @@ export function GroupDetailClient({ id }: GroupDetailClientProps) {
           }}
         />
       )}
+      {/* Delete Group Modal */}
+      <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Group</DialogTitle>
+            <DialogDescription>
+              This action cannot be undone. This will permanently archive the group and remove it from your dashboard.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>To confirm, type "delete: {group.name}"</Label>
+              <Input
+                value={deleteConfirmation}
+                onChange={(e) => setDeleteConfirmation(e.target.value)}
+                placeholder={`delete: ${group.name}`}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteModalOpen(false)}>Cancel</Button>
+            <Button
+              variant="destructive"
+              disabled={deleteConfirmation !== `delete: ${group.name}` || isDeleting}
+              onClick={async () => {
+                setIsDeleting(true);
+                try {
+                  await archiveGroup(group._id);
+                  router.push('/dashboard');
+                } catch (error) {
+                  console.error('Failed to delete group:', error);
+                  setIsDeleting(false);
+                }
+              }}
+            >
+              {isDeleting ? 'Deleting...' : 'Delete Group'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

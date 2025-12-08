@@ -22,6 +22,13 @@
       "when": 1764916643328,
       "tag": "0002_small_starfox",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1764919531200,
+      "tag": "0003_strong_leopardon",
+      "breakpoints": true
     }
   ]
 }

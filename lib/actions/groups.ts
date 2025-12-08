@@ -98,12 +98,17 @@ export async function getGroupsForUser(): Promise<GroupCardData[]> {
 
   const groupMemberships = await db.query.usersToGroups.findMany({
     where: eq(usersToGroups.userId, user.id),
-    with: { group: true },
+    with: {
+      group: true,
+    },
   });
 
-  if (groupMemberships.length === 0) return [];
+  // Filter out archived groups
+  const activeGroupMemberships = groupMemberships.filter(gm => !gm.group.archived);
 
-  const groupIds = groupMemberships.map((gm) => gm.groupId);
+  if (activeGroupMemberships.length === 0) return [];
+
+  const groupIds = activeGroupMemberships.map((gm) => gm.groupId);
 
   // Fetch all members for the user's groups in a single query
   const allGroupsMembers = await db.query.users.findMany({
@@ -147,7 +152,7 @@ export async function getGroupsForUser(): Promise<GroupCardData[]> {
     }
   });
 
-  const result: GroupCardData[] = groupMemberships.map(({ group }) => {
+  const result: GroupCardData[] = activeGroupMemberships.map(({ group }) => {
     const membersOfGroup = allGroupsMembers
       .filter((member) => member.groups.some((g) => g.groupId === group.id))
       .map(({ ...member }) => member); // Exclude the 'groups' property from the final member object
@@ -251,6 +256,10 @@ export async function getGroup(groupId: string): Promise<{ group: GroupDetail }>
 
   if (!group) {
     throw new Error('Group not found');
+  }
+
+  if (group.archived) {
+    throw new Error('Group is archived');
   }
 
   // Get all members of the group
@@ -864,7 +873,7 @@ export async function getExpenses(groupId: string): Promise<{ expenses: Expense[
       amount: 0,
       paidBy: {
         _id: log.actorId,
-        name: log.actor.name || 'Unknown User',
+        name: log.actor?.name || 'Unknown User',
       },
       splitBetween: [],
       category: 'Log',
@@ -872,8 +881,8 @@ export async function getExpenses(groupId: string): Promise<{ expenses: Expense[
       createdAt: log.createdAt.toISOString(),
       settled: true,
       type: log.action as 'member_added' | 'member_removed',
-      entityName: log.entity.name || 'Unknown User',
-      actorName: log.actor.name || 'Unknown User',
+      entityName: log.entity?.name || 'Unknown User',
+      actorName: log.actor?.name || 'Unknown User',
     };
   });
 
@@ -1212,9 +1221,47 @@ export async function respondToInvitation(invitationId: number, accept: boolean)
       actorId: user.id, // User added themselves by accepting
     });
 
-  } else {
     await db.update(invitations)
       .set({ status: 'declined' })
       .where(eq(invitations.id, invitationId));
   }
+}
+
+export async function archiveGroup(groupId: string) {
+  const { userId } = await auth();
+  if (!userId) redirect('/sign-in');
+
+  const user = await syncUser();
+  if (!user) redirect('/sign-in');
+
+  const groupIdNum = parseInt(groupId);
+  if (isNaN(groupIdNum)) {
+    throw new Error('Invalid group ID');
+  }
+
+  // Check if user is admin
+  const membership = await db.query.usersToGroups.findFirst({
+    where: and(
+      eq(usersToGroups.userId, user.id),
+      eq(usersToGroups.groupId, groupIdNum),
+      eq(usersToGroups.role, 'admin')
+    ),
+  });
+
+  if (!membership) {
+    throw new Error('Access denied: Only admins can delete groups');
+  }
+
+  // Archive group
+  await db.update(groups)
+    .set({ archived: true })
+    .where(eq(groups.id, groupIdNum));
+
+  // Log activity
+  await db.insert(activityLogs).values({
+    groupId: groupIdNum,
+    action: 'group_archived',
+    entityId: groupId, // Using group ID as entity ID for this action
+    actorId: user.id,
+  });
 }
