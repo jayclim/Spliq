@@ -11,6 +11,20 @@ export interface Group {
   unreadCount: number;
   recentActivity?: string;
   balance: number;
+  pendingInvitations: GroupInvitation[];
+}
+
+export interface GroupInvitation {
+  id: number;
+  email: string;
+  status: 'pending' | 'accepted' | 'declined';
+  invitedBy: {
+    name: string | null;
+    avatarUrl: string | null;
+  };
+  ghostUser?: {
+    name: string | null;
+  };
 }
 
 export interface GroupMember {
@@ -18,7 +32,7 @@ export interface GroupMember {
   name: string;
   email: string;
   avatar?: string;
-  role: 'admin' | 'member';
+  role: 'owner' | 'admin' | 'member';
   joinedAt: string;
   isGhost?: boolean;
 }

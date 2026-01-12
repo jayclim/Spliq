@@ -13,6 +13,8 @@ import { useForm } from 'react-hook-form';
 import { createExpenseAction, CreateExpenseData } from '@/lib/actions/mutations';
 import { GroupMember } from '@/api/groups';
 import { useToast } from '@/hooks/useToast';
+import { AIExpenseModal } from './AIExpenseModal';
+import { ScanLine } from 'lucide-react';
 
 interface ManualExpenseModalProps {
   open: boolean;
@@ -174,6 +176,20 @@ export function ManualExpenseModal({ open, onClose, groupId, members, onExpenseC
             </div>
             <span>Add Expense Manually</span>
           </DialogTitle>
+          <AIExpenseModal 
+            groupId={parseInt(groupId)}
+            onScanComplete={(data) => {
+              setValue('amount', data.total);
+              setValue('description', `Receipt from ${data.merchant || 'Unknown'}`);
+              // Could also try to match category based on merchant
+              toast({ title: 'Receipt Applied', description: 'Form updated with receipt data.' });
+            }}
+          >
+             <Button variant="outline" size="sm" className="gap-2 text-blue-600 border-blue-200 hover:bg-blue-50">
+               <ScanLine className="h-4 w-4" />
+               Auto-Scan Receipt
+             </Button>
+          </AIExpenseModal>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">

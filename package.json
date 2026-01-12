@@ -21,12 +21,15 @@
     "test": "dotenv -e .env.test.local -- jest --config=jest.config.mjs --runInBand",
     "test:watch": "dotenv -e .env.test.local -- jest --config=jest.config.mjs --watch",
     "db:drop": "dotenv -e .env.local -- tsx scripts/drop-tables.ts",
-    "test:db:drop": "dotenv -e .env.test.local -- tsx scripts/drop-tables.ts"
+    "test:db:drop": "dotenv -e .env.test.local -- tsx scripts/drop-tables.ts",
+    "ngrok:setup": "./scripts/ngrok-setup.sh"
   },
   "dependencies": {
     "@auth/core": "^0.40.0",
     "@clerk/nextjs": "^6.35.5",
     "@faker-js/faker": "^9.9.0",
+    "@google/generative-ai": "^0.24.1",
+    "@lemonsqueezy/lemonsqueezy.js": "^4.0.0",
     "@radix-ui/react-accordion": "^1.2.11",
     "@radix-ui/react-alert-dialog": "^1.1.14",
     "@radix-ui/react-aspect-ratio": "^1.1.7",

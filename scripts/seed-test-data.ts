@@ -112,8 +112,8 @@ async function seedTestData(skipClerk = false) {
     // Group 1: Weekend Trip (Alice, Bob, Charlie) - Unsettled
     const [weekendTrip] = await db.insert(groups).values({ name: 'Weekend Trip', description: 'Our amazing weekend getaway' }).returning();
     await db.insert(usersToGroups).values([
-      { userId: alice.id, groupId: weekendTrip.id, role: 'admin' },
-      { userId: bob.id, groupId: weekendTrip.id, role: 'member' },
+      { userId: alice.id, groupId: weekendTrip.id, role: 'owner' },
+      { userId: bob.id, groupId: weekendTrip.id, role: 'admin' },
       { userId: charlie.id, groupId: weekendTrip.id, role: 'member' },
     ]);
 
@@ -134,9 +134,9 @@ async function seedTestData(skipClerk = false) {
     // Group 2: Road Trip (All 6 users) - Unsettled with uneven splits
     const [roadTrip] = await db.insert(groups).values({ name: 'Cross-Country Road Trip', description: 'From coast to coast!' }).returning();
     await db.insert(usersToGroups).values([
-      { userId: alice.id, groupId: roadTrip.id, role: 'admin' },
-      { userId: bob.id, groupId: roadTrip.id, role: 'member' },
-      { userId: charlie.id, groupId: roadTrip.id, role: 'member' },
+      { userId: alice.id, groupId: roadTrip.id, role: 'owner' },
+      { userId: bob.id, groupId: roadTrip.id, role: 'admin' },
+      { userId: charlie.id, groupId: roadTrip.id, role: 'admin' },
       { userId: dave.id, groupId: roadTrip.id, role: 'member' },
       { userId: eve.id, groupId: roadTrip.id, role: 'member' },
       { userId: frank.id, groupId: roadTrip.id, role: 'member' },
@@ -145,16 +145,16 @@ async function seedTestData(skipClerk = false) {
     // Group 3: Apartment 4B (Alice, Dave, Eve) - Settled
     const [apartment] = await db.insert(groups).values({ name: 'Apartment 4B', description: 'Rent and utilities' }).returning();
     await db.insert(usersToGroups).values([
-      { userId: alice.id, groupId: apartment.id, role: 'admin' },
-      { userId: dave.id, groupId: apartment.id, role: 'member' },
+      { userId: alice.id, groupId: apartment.id, role: 'owner' },
+      { userId: dave.id, groupId: apartment.id, role: 'admin' },
       { userId: eve.id, groupId: apartment.id, role: 'member' },
     ]);
 
     // Group 4: Office Lunches (Bob, Charlie, Frank) - Unsettled, not all members in each expense
     const [officeLunches] = await db.insert(groups).values({ name: 'Office Lunches', description: 'Weekly team lunch' }).returning();
     await db.insert(usersToGroups).values([
-      { userId: bob.id, groupId: officeLunches.id, role: 'admin' },
-      { userId: charlie.id, groupId: officeLunches.id, role: 'member' },
+      { userId: bob.id, groupId: officeLunches.id, role: 'owner' },
+      { userId: charlie.id, groupId: officeLunches.id, role: 'admin' },
       { userId: frank.id, groupId: officeLunches.id, role: 'member' },
     ]);
     console.log('✅ Created groups and memberships');
@@ -209,8 +209,8 @@ async function seedTestData(skipClerk = false) {
     // --- Project X (Unequal Splits Feature Test) ---
     const [projectX] = await db.insert(groups).values({ name: 'Project X', description: 'Secret unequal splitting project' }).returning();
     await db.insert(usersToGroups).values([
-      { userId: alice.id, groupId: projectX.id, role: 'admin' },
-      { userId: bob.id, groupId: projectX.id, role: 'member' },
+      { userId: alice.id, groupId: projectX.id, role: 'owner' },
+      { userId: bob.id, groupId: projectX.id, role: 'admin' },
       { userId: charlie.id, groupId: projectX.id, role: 'member' },
     ]);
 

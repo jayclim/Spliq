@@ -29,6 +29,27 @@
       "when": 1764919531200,
       "tag": "0003_strong_leopardon",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1765345347647,
+      "tag": "0004_brave_tempest",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1765442192249,
+      "tag": "0005_calm_roxanne_simpson",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1765442284278,
+      "tag": "0006_violet_gressill",
+      "breakpoints": true
     }
   ]
 }

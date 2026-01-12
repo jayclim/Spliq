@@ -18,6 +18,7 @@ import {
 import { useRouter } from 'next/navigation';
 
 import { useUser } from '@clerk/nextjs';
+import { Footer } from './Footer';
 
 function AuthButtons() {
   const router = useRouter();
@@ -63,7 +64,7 @@ export function LandingPage() {
             <div className="w-10 h-10 bg-black rounded-xl flex items-center justify-center text-white">
               <Zap className="h-6 w-6 fill-current" />
             </div>
-            <span className="text-xl font-bold tracking-tight">Divvy</span>
+            <span className="text-xl font-bold tracking-tight">Spliq</span>
           </div>
           
           {/* <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-600">
@@ -325,78 +326,7 @@ export function LandingPage() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-slate-50 pt-20 pb-10 border-t border-slate-100">
-        <div className="container mx-auto px-6">
-          <div className="grid md:grid-cols-4 gap-12 mb-16">
-            <div className="col-span-1 md:col-span-1">
-              <div className="flex items-center gap-2 mb-6">
-                <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center text-white">
-                  <Zap className="h-5 w-5 fill-current" />
-                </div>
-                <span className="text-lg font-bold">Divvy</span>
-              </div>
-              <p className="text-slate-500 text-sm leading-relaxed">
-                The modern way to track expenses, split bills, and settle debts with friends.
-              </p>
-            </div>
-            
-            {/* <div>
-              <h4 className="font-bold mb-6">Product</h4>
-              <ul className="space-y-4 text-sm text-slate-500">
-                <li><a href="#" className="hover:text-black">Features</a></li>
-                <li><a href="#" className="hover:text-black">Integrations</a></li>
-                <li><a href="#" className="hover:text-black">Pricing</a></li>
-                <li><a href="#" className="hover:text-black">Changelog</a></li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-bold mb-6">Company</h4>
-              <ul className="space-y-4 text-sm text-slate-500">
-                <li><a href="#" className="hover:text-black">About</a></li>
-                <li><a href="#" className="hover:text-black">Careers</a></li>
-                <li><a href="#" className="hover:text-black">Blog</a></li>
-                <li><a href="#" className="hover:text-black">Contact</a></li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-bold mb-6">Stay Updated</h4>
-              <p className="text-sm text-slate-500 mb-4">
-                Subscribe to our newsletter for the latest updates.
-              </p>
-              <div className="flex gap-2">
-                <input 
-                  type="email" 
-                  placeholder="Enter your email" 
-                  className="bg-white border border-slate-200 rounded-lg px-4 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <Button size="sm" className="bg-black text-white hover:bg-slate-800">
-                  Join
-                </Button>
-              </div>
-            </div> */}
-          </div>
-
-          <div className="border-t border-slate-200 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-            <div className="w-full flex flex-col md:flex-row items-center justify-center gap-1 text-sm text-slate-500">
-              <span>© 2025 Divvy. All rights reserved.</span>
-              <span className="hidden md:inline">|</span>
-              <span>
-                designed and developed by{' '}
-                <a href="https://jaydenclim.com" target="_blank" rel="noopener noreferrer" className="text-black hover:underline">
-                  Jayden Lim
-                </a>
-              </span>
-            </div>
-            {/* <div className="flex gap-6 text-sm text-slate-500">
-              <a href="#" className="hover:text-black">Privacy Policy</a>
-              <a href="#" className="hover:text-black">Terms of Service</a>
-              <a href="#" className="hover:text-black">Cookies</a>
-            </div> */}
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

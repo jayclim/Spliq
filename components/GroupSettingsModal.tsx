@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter, DialogClose } from './ui/dialog';
 import { Button } from './ui/button';
@@ -8,9 +8,9 @@ import { Textarea } from './ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
-import { Settings, Users, Trash2, UserMinus, Crown, Mail, Ghost } from 'lucide-react';
+import { Settings, Users, Trash2, UserMinus, Crown, Mail, Ghost, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
 import { Group } from '@/api/groups';
-import { createGhostMember, inviteMember, removeMember } from '@/lib/actions/groups';
+import { createGhostMember, inviteMember, removeMember, updateGroupRole } from '@/lib/actions/groups';
 import { useToast } from '@/hooks/useToast';
 
 interface GroupSettingsModalProps {
@@ -23,20 +23,47 @@ export function GroupSettingsModal({ group, onGroupUpdated }: GroupSettingsModal
   const [loading, setLoading] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [ghostName, setGhostName] = useState('');
-  const [activeTab, setActiveTab] = useState("info");
+  // Default to notifications
+  const [activeTab, setActiveTab] = useState("notifications");
   const [addMemberMode, setAddMemberMode] = useState<'email' | 'ghost'>('email');
   const [memberToRemove, setMemberToRemove] = useState<string | null>(null);
   const { toast } = useToast();
   const { user } = useUser();
 
   const currentUserRole = group.members.find(m => m._id === user?.id)?.role;
+  const isOwner = currentUserRole === 'owner';
   const isAdmin = currentUserRole === 'admin';
+  const isMember = currentUserRole === 'member';
 
-  console.log('Active Tab:', activeTab);
+  // Determine available tabs
+  // Member: Notifications only (no tabs UI, just content)
+  // Admin: Notifications, Info, Members
+  // Owner: Notifications, Info, Members, Advanced
+  
+  const showTabs = !isMember;
+  const tabs = ['notifications', 'info', 'members'];
+  if (isOwner) {
+    tabs.push('advanced');
+  }
+
+  // Effect to ensure valid tab selection when role changes or modal opens
+  useEffect(() => {
+    if (isMember) {
+      setActiveTab('notifications');
+    } else if (!tabs.includes(activeTab)) {
+      setActiveTab('notifications');
+    }
+  }, [currentUserRole, activeTab, isMember]);
 
   const getInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
   };
+
+  const sortedMembers = [...group.members].sort((a, b) => {
+    if (a._id === user?.id) return -1;
+    if (b._id === user?.id) return 1;
+    return (a.name || '').localeCompare(b.name || '');
+  });
 
   const confirmRemoveMember = async () => {
     if (!memberToRemove) return;
@@ -61,21 +88,20 @@ export function GroupSettingsModal({ group, onGroupUpdated }: GroupSettingsModal
     }
   };
 
-  const handleMakeAdmin = async (memberId: string) => {
+  const handleUpdateRole = async (memberId: string, newRole: 'admin' | 'member') => {
     try {
       setLoading(true);
-      // Mock API call
-      console.log('Making admin:', memberId);
+      await updateGroupRole(group._id, memberId, newRole);
       toast({
-        title: "Admin role granted",
-        description: "Member is now an admin.",
+        title: "Role updated",
+        description: `Member role updated to ${newRole}.`,
       });
       onGroupUpdated();
     } catch (error) {
       console.error(error);
       toast({
         title: "Error",
-        description: "Failed to update member role",
+        description: error instanceof Error ? error.message : "Failed to update member role",
         variant: "destructive",
       });
     } finally {
@@ -127,6 +153,12 @@ export function GroupSettingsModal({ group, onGroupUpdated }: GroupSettingsModal
     }
   };
 
+  const canRemove = (targetRole: string) => {
+    if (isOwner) return targetRole !== 'owner';
+    if (isAdmin) return targetRole === 'member';
+    return false;
+  };
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -138,27 +170,29 @@ export function GroupSettingsModal({ group, onGroupUpdated }: GroupSettingsModal
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
             <Settings className="h-5 w-5" />
-            <span>Group Settings</span>
+            <span>{isMember ? 'Notifications' : 'Group Settings'}</span>
           </DialogTitle>
         </DialogHeader>
 
         <div className="w-full">
-          <div className="grid w-full grid-cols-4 mb-4 bg-muted p-1 rounded-md">
-            {['info', 'members', 'notifications', 'advanced'].map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`
-                  inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50
-                  ${activeTab === tab ? 'bg-white text-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted-foreground/10'}
-                `}
-              >
-                {tab.charAt(0).toUpperCase() + tab.slice(1)}
-              </button>
-            ))}
-          </div>
+          {showTabs && (
+            <div className="flex w-full mb-4 bg-muted p-1 rounded-md overflow-x-auto">
+              {tabs.map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`
+                    flex-1 inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50
+                    ${activeTab === tab ? 'bg-white text-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted-foreground/10'}
+                  `}
+                >
+                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                </button>
+              ))}
+            </div>
+          )}
 
-          {activeTab === 'info' && (
+          {activeTab === 'info' && (isOwner || isAdmin) && (
             <div className="space-y-4">
               <Card>
                 <CardHeader>
@@ -182,7 +216,7 @@ export function GroupSettingsModal({ group, onGroupUpdated }: GroupSettingsModal
             </div>
           )}
 
-          {activeTab === 'members' && (
+          {activeTab === 'members' && (isOwner || isAdmin) && (
             <div className="space-y-4">
               <Card>
                 <CardHeader>
@@ -252,70 +286,99 @@ export function GroupSettingsModal({ group, onGroupUpdated }: GroupSettingsModal
                   </div>
 
                   <div className="space-y-4">
+
+                    {group.pendingInvitations && group.pendingInvitations.length > 0 && (
+                      <div className="mb-6">
+                        <h4 className="font-medium mb-3">Pending Invitations</h4>
+                        <div className="space-y-2">
+                          {group.pendingInvitations.map((invite) => (
+                            <div key={invite.id} className="flex items-center justify-between p-3 border rounded-lg bg-slate-50 border-slate-200">
+                              <div className="flex items-center space-x-3">
+                                <div className="h-8 w-8 rounded-full bg-slate-200 flex items-center justify-center">
+                                  <Mail className="h-4 w-4 text-slate-500" />
+                                </div>
+                                <div>
+                                  <p className="font-medium text-sm">
+                                    {invite.ghostUser ? `Claim Request: ${invite.ghostUser.name}` : `Invited: ${invite.email}`}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {invite.ghostUser ? `Sent to ${invite.email}` : `Invited by ${invite.invitedBy.name}`}
+                                  </p>
+                                </div>
+                              </div>
+                              <Badge variant="outline" className="text-orange-600 border-orange-200 bg-orange-50">
+                                Pending
+                              </Badge>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     <h4 className="font-medium">Current Members</h4>
-                  {group.members.map((member) => (
-                    <div key={member._id} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <Avatar>
-                          <AvatarImage src={member.avatar} />
-                          <AvatarFallback>{getInitials(member.name)}</AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="font-medium">{member.name}</p>
-                          {!member.isGhost && (
-                            <p className="text-sm text-muted-foreground">{member.email}</p>
-                          )}
+                    {sortedMembers.map((member) => (
+                      <div key={member._id} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          <Avatar>
+                            <AvatarImage src={member.avatar} />
+                            <AvatarFallback>{getInitials(member.name)}</AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="font-medium">{member.name}</p>
+                            {!member.isGhost && (
+                              <p className="text-sm text-muted-foreground">{member.email}</p>
+                            )}
+                            {member.isGhost && (
+                              <Badge variant="outline" className="text-xs mt-1">Ghost User</Badge>
+                            )}
+                          </div>
+                          {member.role === 'owner' && <Badge className="bg-black text-white hover:bg-black/90">Owner</Badge>}
+                          {member.role === 'admin' && <Badge className="bg-indigo-500 hover:bg-indigo-600 border-transparent text-white">Admin</Badge>}
+                          {member.role === 'member' && <Badge variant="outline" className="text-slate-500 border-slate-200">Member</Badge>}
+                        </div>
+                        <div className="flex space-x-2">
                           {member.isGhost && (
-                            <Badge variant="outline" className="text-xs mt-1">Ghost User</Badge>
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button size="sm" variant="outline">
+                                  <Mail className="h-4 w-4 mr-1" />
+                                  Claim
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="sm:max-w-md">
+                                <DialogHeader>
+                                  <DialogTitle>Invite User to Claim {member.name}</DialogTitle>
+                                  <DialogDescription>
+                                    Enter the email address of the person who should claim this ghost profile.
+                                  </DialogDescription>
+                                </DialogHeader>
+                                <div className="flex items-center space-x-2">
+                                  <Input
+                                    placeholder="email@example.com"
+                                    value={inviteEmail}
+                                    onChange={(e) => setInviteEmail(e.target.value)}
+                                  />
+                                  <Button onClick={() => handleInviteMember(member._id)} disabled={loading || !inviteEmail}>
+                                    Send
+                                  </Button>
+                                </div>
+                              </DialogContent>
+                            </Dialog>
+                          )}
+                          {canRemove(member.role) && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setMemberToRemove(member._id)}
+                              disabled={loading}
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              <UserMinus className="h-4 w-4" />
+                            </Button>
                           )}
                         </div>
-                        <Badge variant={member.role === 'admin' ? 'default' : 'secondary'}>
-                          {member.role}
-                        </Badge>
                       </div>
-                      <div className="flex space-x-2">
-                        {member.isGhost && (
-                           <Dialog>
-                             <DialogTrigger asChild>
-                               <Button size="sm" variant="outline">
-                                 <Mail className="h-4 w-4 mr-1" />
-                                 Invite to Claim
-                               </Button>
-                             </DialogTrigger>
-                             <DialogContent className="sm:max-w-md">
-                               <DialogHeader>
-                                 <DialogTitle>Invite User to Claim {member.name}</DialogTitle>
-                                 <DialogDescription>
-                                   Enter the email address of the person who should claim this ghost profile.
-                                 </DialogDescription>
-                               </DialogHeader>
-                               <div className="flex items-center space-x-2">
-                                 <Input
-                                   placeholder="email@example.com"
-                                   value={inviteEmail}
-                                   onChange={(e) => setInviteEmail(e.target.value)}
-                                 />
-                                 <Button onClick={() => handleInviteMember(member._id)} disabled={loading || !inviteEmail}>
-                                   Send Invite
-                                 </Button>
-                               </div>
-                             </DialogContent>
-                           </Dialog>
-                        )}
-                        {isAdmin && member.role !== 'admin' && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setMemberToRemove(member._id)}
-                            disabled={loading}
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            <UserMinus className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                    ))}
                   </div>
                 </CardContent>
               </Card>
@@ -356,7 +419,7 @@ export function GroupSettingsModal({ group, onGroupUpdated }: GroupSettingsModal
             </div>
           )}
 
-          {activeTab === 'advanced' && (
+          {activeTab === 'advanced' && isOwner && (
             <div className="space-y-4">
               <Card>
                 <CardHeader>
@@ -370,7 +433,7 @@ export function GroupSettingsModal({ group, onGroupUpdated }: GroupSettingsModal
                       Manage Roles
                     </h4>
                     <div className="space-y-3">
-                      {group.members.map((member) => (
+                      {sortedMembers.map((member) => (
                         <div key={member._id} className="flex items-center justify-between">
                           <div className="flex items-center space-x-2">
                             <Avatar className="h-8 w-8">
@@ -378,38 +441,55 @@ export function GroupSettingsModal({ group, onGroupUpdated }: GroupSettingsModal
                               <AvatarFallback>{getInitials(member.name)}</AvatarFallback>
                             </Avatar>
                             <span className="text-sm font-medium">{member.name}</span>
+                            {member.role === 'owner' && <Badge className="ml-2 bg-black text-white hover:bg-black/90">Owner</Badge>}
+                            {member.role === 'admin' && <Badge className="ml-2 bg-indigo-500 hover:bg-indigo-600 border-transparent text-white">Admin</Badge>}
+                            {member.role === 'member' && <Badge variant="outline" className="ml-2 text-slate-500 border-slate-200">Member</Badge>}
                           </div>
-                          {member.role === 'admin' ? (
-                            <Badge>Admin</Badge>
-                          ) : (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleMakeAdmin(member._id)}
-                              disabled={loading}
-                            >
-                              Make Admin
-                            </Button>
+                          
+                          {member.role !== 'owner' && (
+                            <div className="flex items-center space-x-2">
+                               {member.role === 'member' ? (
+                                 <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleUpdateRole(member._id, 'admin')}
+                                  disabled={loading}
+                                  className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                >
+                                  <ArrowUpCircle className="h-4 w-4 mr-1" />
+                                  Promote
+                                </Button>
+                               ) : (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleUpdateRole(member._id, 'member')}
+                                  disabled={loading}
+                                  className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                                >
+                                  <ArrowDownCircle className="h-4 w-4 mr-1" />
+                                  Demote
+                                </Button>
+                               )}
+                            </div>
                           )}
                         </div>
                       ))}
                     </div>
                   </div>
 
-                  {isAdmin && (
-                    <div className="p-4 border border-red-200 rounded-lg bg-red-50">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium text-red-800">Delete Group</p>
-                          <p className="text-sm text-red-600">This action cannot be undone</p>
-                        </div>
-                        <Button variant="destructive">
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Delete Group
-                        </Button>
+                  <div className="p-4 border border-red-200 rounded-lg bg-red-50">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium text-red-800">Delete Group</p>
+                        <p className="text-sm text-red-600">This action cannot be undone</p>
                       </div>
+                      <Button variant="destructive">
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete Group
+                      </Button>
                     </div>
-                  )}
+                  </div>
                 </CardContent>
               </Card>
             </div>

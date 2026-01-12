@@ -8,6 +8,7 @@ import {
   boolean,
   pgEnum,
   decimal,
+  jsonb,
 } from 'drizzle-orm/pg-core';
 import type { AdapterAccount } from '@auth/core/adapters';
 import { relations } from 'drizzle-orm';
@@ -16,7 +17,7 @@ import { relations } from 'drizzle-orm';
 //          ENUMS
 // =================================
 
-export const roleEnum = pgEnum('role', ['admin', 'member']);
+export const roleEnum = pgEnum('role', ['owner', 'admin', 'member']);
 export const invitationStatusEnum = pgEnum('invitation_status', ['pending', 'accepted', 'declined']);
 
 // =================================
@@ -31,6 +32,13 @@ export const users = pgTable('users', {
   image: text('image'),
   avatarUrl: text('avatar_url'),
   isGhost: boolean('is_ghost').default(false).notNull(),
+  // Subscription fields
+  subscriptionTier: text('subscription_tier', { enum: ['free', 'pro'] }).default('free').notNull(),
+  lemonSqueezyCustomerId: text('lemon_squeezy_customer_id'),
+  lemonSqueezySubscriptionId: text('lemon_squeezy_subscription_id'),
+  currentPeriodEnd: timestamp('current_period_end', { withTimezone: true }),
+  // Methods for smart settlements
+  paymentMethods: jsonb('payment_methods').$type<Record<string, string>>().default({}),
 });
 
 export const accounts = pgTable(

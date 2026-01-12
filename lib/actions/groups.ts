@@ -14,6 +14,19 @@ export type GroupMember = {
   avatarUrl: string | null;
 };
 
+export type GroupInvitation = {
+  id: number;
+  email: string;
+  status: 'pending' | 'accepted' | 'declined';
+  invitedBy: {
+    name: string | null;
+    avatarUrl: string | null;
+  };
+  ghostUser?: {
+    name: string | null;
+  };
+};
+
 export type GroupCardData = {
   id: number;
   name: string;
@@ -30,7 +43,7 @@ export type GroupDetailMember = {
   name: string;
   email: string;
   avatar?: string;
-  role: 'admin' | 'member';
+  role: 'owner' | 'admin' | 'member';
   joinedAt: string;
   isGhost?: boolean;
 };
@@ -41,6 +54,7 @@ export type GroupDetail = {
   description?: string;
   coverImage?: string;
   members: GroupDetailMember[];
+  pendingInvitations: GroupInvitation[];
   createdAt: string;
   updatedAt: string;
   unreadCount: number;
@@ -322,6 +336,40 @@ export async function getGroup(groupId: string): Promise<{ group: GroupDetail }>
     }
   }
 
+  // Fetch pending invitations
+  const pendingInvites = await db.query.invitations.findMany({
+    where: and(
+      eq(invitations.groupId, groupIdNum),
+      eq(invitations.status, 'pending')
+    ),
+    with: {
+      invitedBy: {
+        columns: {
+          name: true,
+          avatarUrl: true,
+        },
+      },
+      ghostUser: {
+        columns: {
+          name: true,
+        }
+      }
+    },
+  });
+
+  const formattedInvitations: GroupInvitation[] = pendingInvites.map(invite => ({
+    id: invite.id,
+    email: invite.email,
+    status: invite.status,
+    invitedBy: {
+      name: invite.invitedBy.name,
+      avatarUrl: invite.invitedBy.avatarUrl,
+    },
+    ghostUser: invite.ghostUser ? {
+      name: invite.ghostUser.name,
+    } : undefined,
+  }));
+
   const balance = totalPaidByUser - totalUserShare;
   const recentExpense = groupExpenses.sort((a, b) => b.date.getTime() - a.date.getTime())[0];
 
@@ -332,6 +380,7 @@ export async function getGroup(groupId: string): Promise<{ group: GroupDetail }>
       description: group.description || undefined,
       coverImage: group.coverImageUrl || undefined,
       members,
+      pendingInvitations: formattedInvitations,
       createdAt: group.createdAt.toISOString(),
       updatedAt: group.updatedAt.toISOString(),
       unreadCount: 0, // Mock
@@ -908,11 +957,11 @@ export async function createGroup(name: string, description?: string, coverImage
     coverImageUrl,
   }).returning();
 
-  // Add the creator as an admin
+  // Add the creator as an owner
   await db.insert(usersToGroups).values({
     userId: user.id,
     groupId: newGroup.id,
-    role: 'admin',
+    role: 'owner',
   });
 
   return newGroup;
@@ -1080,8 +1129,8 @@ export async function removeMember(groupId: string, memberId: string) {
     ),
   });
 
-  if (!requesterMembership || requesterMembership.role !== 'admin') {
-    throw new Error('Access denied: Only admins can remove members');
+  if (!requesterMembership || (requesterMembership.role !== 'admin' && requesterMembership.role !== 'owner')) {
+    throw new Error('Access denied: Only owners and admins can remove members');
   }
 
   // Prevent removing yourself (optional, but good practice to have a separate "leave group" flow or just allow it)
@@ -1100,8 +1149,13 @@ export async function removeMember(groupId: string, memberId: string) {
     throw new Error('Member not found in this group');
   }
 
-  if (memberToRemove.role === 'admin') {
-    throw new Error('Access denied: Cannot remove an admin');
+  if (memberToRemove.role === 'owner') {
+    throw new Error('Access denied: Cannot remove the owner');
+  }
+
+  // Admin cannot remove other admins
+  if (requesterMembership.role === 'admin' && memberToRemove.role === 'admin') {
+    throw new Error('Access denied: Admins cannot remove other admins');
   }
 
   // Remove the member
@@ -1244,12 +1298,12 @@ export async function archiveGroup(groupId: string) {
     where: and(
       eq(usersToGroups.userId, user.id),
       eq(usersToGroups.groupId, groupIdNum),
-      eq(usersToGroups.role, 'admin')
+      eq(usersToGroups.role, 'owner')
     ),
   });
 
   if (!membership) {
-    throw new Error('Access denied: Only admins can delete groups');
+    throw new Error('Access denied: Only owners can delete groups');
   }
 
   // Archive group
@@ -1264,4 +1318,64 @@ export async function archiveGroup(groupId: string) {
     entityId: groupId, // Using group ID as entity ID for this action
     actorId: user.id,
   });
+}
+
+export async function updateGroupRole(groupId: string, memberId: string, newRole: 'admin' | 'member') {
+  const { userId } = await auth();
+  if (!userId) redirect('/sign-in');
+
+  const user = await syncUser();
+  if (!user) redirect('/sign-in');
+
+  const groupIdNum = parseInt(groupId);
+  if (isNaN(groupIdNum)) {
+    throw new Error('Invalid group ID');
+  }
+
+  // Verify requester is the owner of the group
+  const requesterMembership = await db.query.usersToGroups.findFirst({
+    where: and(
+      eq(usersToGroups.userId, user.id),
+      eq(usersToGroups.groupId, groupIdNum),
+      eq(usersToGroups.role, 'owner')
+    ),
+  });
+
+  if (!requesterMembership) {
+    throw new Error('Access denied: Only the owner can manage roles');
+  }
+
+  // Verify member exists in group
+  const memberToUpdate = await db.query.usersToGroups.findFirst({
+    where: and(
+      eq(usersToGroups.userId, memberId),
+      eq(usersToGroups.groupId, groupIdNum)
+    ),
+  });
+
+  if (!memberToUpdate) {
+    throw new Error('Member not found in this group');
+  }
+
+  if (memberToUpdate.role === 'owner') {
+    throw new Error('Cannot change the role of the owner');
+  }
+
+  // Update role
+  await db.update(usersToGroups)
+    .set({ role: newRole })
+    .where(and(
+      eq(usersToGroups.userId, memberId),
+      eq(usersToGroups.groupId, groupIdNum)
+    ));
+
+  // Log activity
+  await db.insert(activityLogs).values({
+    groupId: groupIdNum,
+    action: 'role_updated', // You might need to add this to your types or schema if strict
+    entityId: memberId,
+    actorId: user.id,
+  });
+
+  return { success: true };
 }

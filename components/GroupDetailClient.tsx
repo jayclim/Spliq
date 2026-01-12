@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AIExpenseModal } from '@/components/AIExpenseModal';
 import { ManualExpenseModal } from '@/components/ManualExpenseModal';
 import { GroupSettingsModal } from '@/components/GroupSettingsModal';
 import { ExpenseHistory } from '@/components/ExpenseHistory';
@@ -34,12 +33,23 @@ export function GroupDetailClient({ id }: GroupDetailClientProps) {
   const { refetch: refetchMessages } = useGroupMessages(id);
   const { data: balancesData, isLoading: balancesLoading, refetch: refetchBalances } = useGroupBalances(id);
   const { refetch: refetchExpenses } = useGroupExpenses(id);
+
+  useEffect(() => {
+    if (groupError) {
+      const errorMessage = groupError.message;
+      if (errorMessage.includes('Access denied') || errorMessage.includes('not a member')) {
+        router.push('/unauthorized');
+      } else if (errorMessage.includes('Group not found') || errorMessage.includes('Invalid group')) {
+        router.replace('/not-found');
+      }
+    }
+  }, [groupError, router]);
   
   const group = groupData?.group || null;
   const balances = balancesData?.balances || [];
   const loading = groupLoading;
 
-  const [aiModalOpen, setAiModalOpen] = useState(false);
+
   const [manualModalOpen, setManualModalOpen] = useState(false);
   const [settleUpModalOpen, setSettleUpModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -265,9 +275,9 @@ export function GroupDetailClient({ id }: GroupDetailClientProps) {
                           )}
                         </div>
                       </div>
-                      <Badge variant={member.role === 'admin' ? 'default' : 'secondary'}>
-                        {member.role}
-                      </Badge>
+                      {member.role === 'owner' && <Badge className="bg-black text-white hover:bg-black/90">Owner</Badge>}
+                      {member.role === 'admin' && <Badge className="bg-indigo-500 hover:bg-indigo-600 border-transparent text-white">Admin</Badge>}
+                      {member.role === 'member' && <Badge variant="outline" className="text-slate-500 border-slate-200">Member</Badge>}
                     </div>
                   </CardContent>
                 </Card>
@@ -278,16 +288,6 @@ export function GroupDetailClient({ id }: GroupDetailClientProps) {
       </div>
 
       {/* Modals */}
-      <AIExpenseModal
-        open={aiModalOpen}
-        onClose={() => setAiModalOpen(false)}
-        groupId={group._id}
-        members={group.members}
-        onExpenseCreated={() => {
-          refetchMessages();
-          refetchBalances();
-        }}
-      />
 
       <ManualExpenseModal
         open={manualModalOpen}

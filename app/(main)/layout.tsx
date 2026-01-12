@@ -3,7 +3,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 
 export const metadata: Metadata = {
-  title: "Divvy",
+  title: "Spliq",
   description: "Manage your group expenses seamlessly.",
 };
 

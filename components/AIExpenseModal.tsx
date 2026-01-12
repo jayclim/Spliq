@@ -1,352 +1,159 @@
-import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { Textarea } from './ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Badge } from './ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
-import { Sparkles, Mic, Camera, Loader2, Check, Edit } from 'lucide-react';
-import { useForm } from 'react-hook-form';
-import { createExpenseAction, CreateExpenseData } from '@/lib/actions/mutations';
-import { processAIExpenseAction } from '@/lib/actions/ai';
-import { GroupMember } from '@/api/groups';
-import { useToast } from '@/hooks/useToast';
+"use client";
+
+import { useState } from "react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Loader2, Plus, ScanLine, X } from "lucide-react";
+import { processReceiptAction } from "@/lib/actions/expenses";
+import { useToast } from "@/hooks/useToast";
 
 interface AIExpenseModalProps {
-  open: boolean;
-  onClose: () => void;
-  groupId: string;
-  members: GroupMember[];
-  onExpenseCreated: () => void;
+  children?: React.ReactNode;
+  groupId: number;
+  onScanComplete?: (data: any) => void;
 }
 
-interface AIFormData {
-  description: string;
-}
-
-export function AIExpenseModal({ open, onClose, groupId, members, onExpenseCreated }: AIExpenseModalProps) {
-  const [step, setStep] = useState<'input' | 'processing' | 'confirm'>('input');
-  const [loading, setLoading] = useState(false);
-  const [parsedExpense, setParsedExpense] = useState<Partial<CreateExpenseData> | null>(null);
-  const [recording, setRecording] = useState(false);
+export function AIExpenseModal({ children, groupId, onScanComplete }: AIExpenseModalProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isScanning, setIsScanning] = useState(false);
+  const [scannedData, setScannedData] = useState<any | null>(null);
   const { toast } = useToast();
 
-  const { register, handleSubmit, reset } = useForm<AIFormData>();
-  const { register: registerConfirm, handleSubmit: handleConfirmSubmit, setValue: setConfirmValue, watch: watchConfirm } = useForm<CreateExpenseData>();
-
-  const getInitials = (name: string) => {
-    return name.split(' ').map(n => n[0]).join('').toUpperCase();
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (selectedFile) {
+      setFile(selectedFile);
+      setPreviewUrl(URL.createObjectURL(selectedFile));
+    }
   };
 
-  const handleAIProcess = async (data: AIFormData) => {
-    try {
-      setLoading(true);
-      setStep('processing');
-      console.log('Processing AI expense:', data);
-      
-      const result = await processAIExpenseAction({
-        groupId,
-        description: data.description
-      });
+  const handleScan = async () => {
+    if (!file) return;
 
-      if (!result.success || !result.parsedExpense) {
-          throw new Error("Failed to parse expense");
+    setIsScanning(true);
+    const formData = new FormData();
+    formData.append('receipt', file);
+
+    try {
+      const result = await processReceiptAction(formData);
+      
+      if (!result.success || !result.data) {
+        throw new Error(result.error || 'Failed to scan');
       }
 
-      const parsed = result.parsedExpense;
-      
-      // Map names to member IDs if possible (simple fuzzy match or exact match)
-      // For now, we'll just pre-fill what we can. 
-      // In a real app, we'd do smarter name matching.
-      const matchedMemberIds = members
-        .filter(m => parsed.splitBetween.some(name => m.name.toLowerCase().includes(name.toLowerCase())))
-        .map(m => m._id);
-
-      // If no members matched but splitBetween has items, default to all members or just the user
-      const finalSplitBetween = matchedMemberIds.length > 0 ? matchedMemberIds : members.map(m => m._id);
-
-      setParsedExpense({
-          description: parsed.description,
-          amount: parsed.amount,
-          splitBetween: finalSplitBetween,
-          splitType: parsed.splitType,
-          category: parsed.category
-      });
-      
-      // Pre-fill confirmation form
-      setConfirmValue('groupId', groupId);
-      setConfirmValue('description', parsed.description || '');
-      setConfirmValue('amount', parsed.amount || 0);
-      setConfirmValue('splitBetween', finalSplitBetween);
-      setConfirmValue('splitType', parsed.splitType || 'equal');
-      setConfirmValue('paidById', members[0]._id); // Default to first member
-      
-      setStep('confirm');
-    } catch (error) {
-      console.error('Error processing AI expense:', error);
+      setScannedData(result.data);
+      if (onScanComplete) {
+        onScanComplete(result.data);
+        // Optionally close modal automatically or wait for user confirmation
+        // For now, let user see result then close manualy or auto-close
+        setIsOpen(false);
+      }
       toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to process expense",
-        variant: "destructive",
+        title: "Receipt Scanned",
+        description: `Found ${result.data.items.length} items. Total: $${result.data.total}`,
       });
-      setStep('input');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleConfirmExpense = async (data: CreateExpenseData) => {
-    try {
-      setLoading(true);
-      console.log('Creating confirmed expense:', data);
-      await createExpenseAction({
-          ...data,
-          groupId,
-          // Ensure splitType is set
-          splitType: data.splitType || 'equal'
-      });
+    } catch (error: any) {
       toast({
-        title: "Expense added!",
-        description: "Your expense has been added to the group.",
-      });
-      handleClose();
-      onExpenseCreated();
-    } catch (error) {
-      console.error('Error creating expense:', error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to create expense",
+        title: "Scan Failed",
+        description: error.message,
         variant: "destructive",
       });
     } finally {
-      setLoading(false);
+      setIsScanning(false);
     }
   };
 
-  const handleClose = () => {
-    onClose();
-    setStep('input');
-    setParsedExpense(null);
-    reset();
+  const reset = () => {
+    setFile(null);
+    setPreviewUrl(null);
+    setScannedData(null);
   };
-
-  const handleVoiceRecord = () => {
-    setRecording(!recording);
-    // Voice recording logic would go here
-    toast({
-      title: "Voice recording",
-      description: "Voice input will be available soon",
-    });
-  };
-
-  const selectedMembers = watchConfirm('splitBetween') || [];
-  const splitType = watchConfirm('splitType') || 'equal';
-  const totalAmount = watchConfirm('amount') || 0;
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-lg bg-white max-h-[90vh] overflow-y-auto">
+    <Dialog open={isOpen} onOpenChange={(open) => { setIsOpen(open); if(!open) reset(); }}>
+      <DialogTrigger asChild>{children}</DialogTrigger>
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-600 rounded-lg flex items-center justify-center">
-              <Sparkles className="h-5 w-5 text-white" />
-            </div>
-            <span>AI Expense Assistant</span>
+          <DialogTitle className="flex items-center gap-2">
+            <ScanLine className="h-5 w-5 text-blue-500" />
+            AI Receipt Scanner
           </DialogTitle>
+          <DialogDescription>
+            Upload a receipt photo. Gemini AI will extract items and prices automatically.
+          </DialogDescription>
         </DialogHeader>
 
-        {step === 'input' && (
-          <div className="space-y-6">
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground">
-                Simply describe the expense naturally, like &quot;Paid $45 for dinner at Mario&apos;s with Alex and Sarah&quot; or &quot;Split $120 grocery bill equally&quot;.
-              </p>
-              <div className="flex flex-wrap gap-2 justify-center text-sm text-muted-foreground">
-                <Badge variant="outline">&quot;Uber to airport $35, split with roommates&quot;</Badge>
-              </div>
-            </div>
-
-            <form onSubmit={handleSubmit(handleAIProcess)} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="description">Describe your expense</Label>
-                <Textarea
-                  id="description"
-                  {...register('description', { required: 'Please describe your expense' })}
-                  placeholder="I paid $45 for tacos for me, Ben, and Chloe..."
-                  rows={4}
-                  className="resize-none"
-                />
-              </div>
-
-              <div className="flex space-x-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleVoiceRecord}
-                  className={`flex-1 ${recording ? 'bg-red-50 border-red-200' : ''}`}
-                >
-                  <Mic className={`h-4 w-4 mr-2 ${recording ? 'text-red-500' : ''}`} />
-                  {recording ? 'Recording...' : 'Voice Input'}
-                </Button>
-                <Button type="button" variant="outline" className="flex-1">
-                  <Camera className="h-4 w-4 mr-2" />
-                  Scan Receipt
-                </Button>
-              </div>
-
-              <Button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="h-4 w-4 mr-2" />
-                    Process with AI
-                  </>
-                )}
-              </Button>
-            </form>
-          </div>
-        )}
-
-        {step === 'processing' && (
-          <div className="text-center py-8">
-            <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Sparkles className="h-8 w-8 text-white animate-pulse" />
-            </div>
-            <h3 className="text-lg font-semibold mb-2">AI is working its magic...</h3>
-            <div className="space-y-2 text-sm text-muted-foreground">
-              <p>🔍 Analyzing your description</p>
-              <p>💰 Extracting amount and participants</p>
-              <p>✨ Almost done...</p>
-            </div>
-          </div>
-        )}
-
-        {step === 'confirm' && parsedExpense && (
-          <div className="space-y-6">
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <div className="flex items-center space-x-2 mb-2">
-                <Check className="h-5 w-5 text-green-600" />
-                <span className="font-medium text-green-800">AI Analysis Complete</span>
-              </div>
-              <p className="text-sm text-green-700">
-                Review and adjust the details below, then confirm to add the expense.
-              </p>
-            </div>
-
-            <form onSubmit={handleConfirmSubmit(handleConfirmExpense)} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="confirmDescription">Description</Label>
-                <Input
-                  id="confirmDescription"
-                  {...registerConfirm('description', { required: 'Description is required' })}
-                  defaultValue={parsedExpense.description}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="amount">Amount ($)</Label>
-                  <Input
-                    id="amount"
-                    type="number"
-                    step="0.01"
-                    {...registerConfirm('amount', { required: 'Amount is required', min: 0.01 })}
-                    defaultValue={parsedExpense.amount}
+        {!scannedData ? (
+          <div className="grid gap-4 py-4">
+            <div className="flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-6 hover:bg-muted/50 transition-colors relative">
+              {previewUrl ? (
+                <>
+                  <img src={previewUrl} alt="Receipt preview" className="max-h-48 rounded shadow-sm" />
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="absolute top-2 right-2 rounded-full bg-black/50 hover:bg-black/70 text-white"
+                    onClick={(e) => { e.stopPropagation(); reset(); }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Label htmlFor="receipt-upload" className="cursor-pointer flex flex-col items-center gap-2 w-full h-full justify-center">
+                    <Plus className="h-8 w-8 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">Tap to select image</span>
+                  </Label>
+                  <Input 
+                    id="receipt-upload" 
+                    type="file" 
+                    accept="image/*" 
+                    className="hidden" 
+                    onChange={handleFileChange} 
                   />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="paidBy">Paid by</Label>
-                  <Select onValueChange={(value) => setConfirmValue('paidById', value)} defaultValue={members[0]._id}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {members.map((member) => (
-                        <SelectItem key={member._id} value={member._id}>
-                          {member.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Split between</Label>
-                <div className="grid grid-cols-2 gap-2">
-                  {members.map((member) => (
-                    <label key={member._id} className="flex items-center space-x-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        {...registerConfirm('splitBetween')}
-                        value={member._id}
-                        defaultChecked={parsedExpense.splitBetween?.includes(member._id)}
-                        className="rounded"
-                      />
-                      <Avatar className="h-6 w-6">
-                        <AvatarImage src={member.avatar} />
-                        <AvatarFallback className="text-xs">
-                          {getInitials(member.name)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="text-sm">{member.name}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {selectedMembers.length > 0 && (
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base">Split Summary</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      {selectedMembers.map((memberId) => {
-                        const member = members.find(m => m._id === memberId);
-                        const amount = splitType === 'equal' ? totalAmount / selectedMembers.length : 0;
-                        return (
-                          <div key={memberId} className="flex justify-between items-center">
-                            <span className="text-sm">{member?.name}</span>
-                            <Badge variant="secondary">${amount.toFixed(2)}</Badge>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </CardContent>
-                </Card>
+                </>
               )}
+            </div>
 
-              <div className="flex space-x-3 pt-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setStep('input')}
-                  className="flex-1"
-                >
-                  <Edit className="h-4 w-4 mr-2" />
-                  Start Over
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={loading}
-                  className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
-                >
-                  {loading ? 'Adding...' : 'Looks Perfect!'}
-                </Button>
-              </div>
-            </form>
+            <Button onClick={handleScan} disabled={!file || isScanning} className="w-full">
+              {isScanning ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Scanning...
+                </>
+              ) : (
+                'Scan Receipt'
+              )}
+            </Button>
+          </div>
+        ) : (
+          <div className="py-4 space-y-4">
+            <div className="bg-muted p-3 rounded text-sm">
+                <div className="flex justify-between font-bold mb-2">
+                    <span>Store: {scannedData.merchant || 'Unknown'}</span>
+                    <span>{scannedData.date}</span>
+                </div>
+                <ul className="space-y-1">
+                    {scannedData.items.map((item: any, idx: number) => (
+                        <li key={idx} className="flex justify-between">
+                            <span>{item.name}</span>
+                            <span>${item.price.toFixed(2)}</span>
+                        </li>
+                    ))}
+                </ul>
+                <div className="border-t border-gray-400 mt-2 pt-2 flex justify-between font-bold">
+                    <span>Total</span>
+                    <span>${scannedData.total.toFixed(2)}</span>
+                </div>
+            </div>
+            <p className="text-xs text-center text-muted-foreground">
+                Verify details before saving. (Saving not implemented in this demo modal yet)
+            </p>
+            <Button onClick={reset} variant="outline" className="w-full">Scan Another</Button>
           </div>
         )}
       </DialogContent>
