@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter, DialogClose } from './ui/dialog';
 import { Button } from './ui/button';
@@ -41,10 +41,13 @@ export function GroupSettingsModal({ group, onGroupUpdated }: GroupSettingsModal
   // Owner: Notifications, Info, Members, Advanced
   
   const showTabs = !isMember;
-  const tabs = ['notifications', 'info', 'members'];
-  if (isOwner) {
-    tabs.push('advanced');
-  }
+  const tabs = useMemo(() => {
+    const t = ['notifications', 'info', 'members'];
+    if (isOwner) {
+      t.push('advanced');
+    }
+    return t;
+  }, [isOwner]);
 
   // Effect to ensure valid tab selection when role changes or modal opens
   useEffect(() => {
@@ -53,7 +56,7 @@ export function GroupSettingsModal({ group, onGroupUpdated }: GroupSettingsModal
     } else if (!tabs.includes(activeTab)) {
       setActiveTab('notifications');
     }
-  }, [currentUserRole, activeTab, isMember]);
+  }, [currentUserRole, activeTab, isMember, tabs]);
 
   const getInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase();

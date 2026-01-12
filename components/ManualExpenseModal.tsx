@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs';
 import { Button } from './ui/button';
@@ -38,7 +38,8 @@ export function ManualExpenseModal({ open, onClose, groupId, members, onExpenseC
 
   const [customAmounts, setCustomAmounts] = useState<Record<string, string>>({});
   const splitType = watch('splitType');
-  const selectedMembers = watch('splitBetween') || [];
+  const splitBetween = watch('splitBetween');
+  const selectedMembers = useMemo(() => splitBetween || [], [splitBetween]);
   
   // Calculate total amount based on split type
   const formAmount = watch('amount');

@@ -10,10 +10,24 @@ import { Loader2, Plus, ScanLine, X } from "lucide-react";
 import { processReceiptAction } from "@/lib/actions/expenses";
 import { useToast } from "@/hooks/useToast";
 
+import Image from "next/image";
+
+interface ReceiptItem {
+  name: string;
+  price: number;
+}
+
+export interface ReceiptData {
+  merchant?: string;
+  date?: string;
+  total: number;
+  items: ReceiptItem[];
+}
+
 interface AIExpenseModalProps {
   children?: React.ReactNode;
   groupId: number;
-  onScanComplete?: (data: any) => void;
+  onScanComplete?: (data: ReceiptData) => void;
 }
 
 export function AIExpenseModal({ children, groupId, onScanComplete }: AIExpenseModalProps) {
@@ -21,7 +35,7 @@ export function AIExpenseModal({ children, groupId, onScanComplete }: AIExpenseM
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState(false);
-  const [scannedData, setScannedData] = useState<any | null>(null);
+  const [scannedData, setScannedData] = useState<ReceiptData | null>(null);
   const { toast } = useToast();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -93,7 +107,14 @@ export function AIExpenseModal({ children, groupId, onScanComplete }: AIExpenseM
             <div className="flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-6 hover:bg-muted/50 transition-colors relative">
               {previewUrl ? (
                 <>
-                  <img src={previewUrl} alt="Receipt preview" className="max-h-48 rounded shadow-sm" />
+                  <div className="relative h-48 w-full max-w-[200px]">
+                    <Image 
+                      src={previewUrl} 
+                      alt="Receipt preview" 
+                      fill
+                      className="object-contain rounded shadow-sm"
+                    />
+                  </div>
                   <Button 
                     variant="ghost" 
                     size="icon" 
@@ -138,7 +159,7 @@ export function AIExpenseModal({ children, groupId, onScanComplete }: AIExpenseM
                     <span>{scannedData.date}</span>
                 </div>
                 <ul className="space-y-1">
-                    {scannedData.items.map((item: any, idx: number) => (
+                    {scannedData.items.map((item, idx) => (
                         <li key={idx} className="flex justify-between">
                             <span>{item.name}</span>
                             <span>${item.price.toFixed(2)}</span>
