@@ -71,10 +71,14 @@ export function AIExpenseModal({ children, groupId, onScanComplete }: AIExpenseM
         title: "Receipt Scanned",
         description: `Found ${result.data.items.length} items. Total: $${result.data.total}`,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      let errorMessage = "An unexpected error occurred";
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
       toast({
         title: "Scan Failed",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
