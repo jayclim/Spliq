@@ -1,137 +1,130 @@
-export default function CookiePolicyPage() {
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Cookies Policy - Spliq',
+  description: 'Cookies Policy for Spliq.',
+};
+
+export default function CookiesPage() {
   return (
-    <article className="prose prose-slate max-w-none">
-      <h1 className="text-3xl font-bold tracking-tight text-slate-900 mb-2">
-        Cookie Policy
-      </h1>
-      <p className="text-sm text-slate-500 mb-8">Last Updated: January 12, 2026</p>
+    <div className="space-y-8 text-slate-700">
+      <h1 className="text-3xl font-bold tracking-tight text-slate-900">Cookies Policy</h1>
+      <p className="text-muted-foreground">Last Updated: January 12, 2026</p>
 
-      <p className="text-slate-600 leading-relaxed">
-        This Cookie Policy explains how Spliq (&quot;we&quot;, &quot;us&quot;, or &quot;our&quot;) uses
-        cookies and similar technologies when you visit our website at spliq.app.
-        It explains what these technologies are and why we use them, as well as
-        your rights to control our use of them.
-      </p>
+      <section className="space-y-4">
+        <h2 className="text-2xl font-bold text-slate-900">1. WHAT ARE COOKIES?</h2>
+        <p>
+          Cookies are small text files that are placed on your computer or mobile device when you visit a website. They are widely used to make websites work more efficiently and to provide information to the owners of the site.
+        </p>
+      </section>
 
-      <h2 className="text-xl font-semibold text-slate-900 mt-8 mb-4">
-        1. What Are Cookies?
-      </h2>
-      <p className="text-slate-600 leading-relaxed">
-        Cookies are small data files that are placed on your computer or mobile
-        device when you visit a website. Cookies are widely used by website owners
-        to make their websites work, or to work more efficiently, as well as to
-        provide reporting information.
-      </p>
-      <p className="text-slate-600 leading-relaxed mt-4">
-        Cookies set by the website owner (in this case, Spliq) are called
-        &quot;first-party cookies&quot;. Cookies set by parties other than the website
-        owner are called &quot;third-party cookies&quot;. Third-party cookies enable
-        third-party features or functionality to be provided on or through the
-        website (e.g., advertising, interactive content, and analytics).
-      </p>
+      <section className="space-y-4">
+        <h2 className="text-2xl font-bold text-slate-900">2. HOW WE USE COOKIES</h2>
+        <p>
+          Spliq uses cookies to authenticate your identity, secure your session, and manage your consent preferences. We do not use cookies for third-party advertising.
+        </p>
+      </section>
 
-      <h2 className="text-xl font-semibold text-slate-900 mt-8 mb-4">
-        2. Why Do We Use Cookies?
-      </h2>
-      <p className="text-slate-600 leading-relaxed mb-4">
-        We use first-party and third-party cookies for several reasons:
-      </p>
-      <ul className="text-slate-600 leading-relaxed space-y-2">
-        <li>
-          <strong className="text-slate-900">Essential Cookies:</strong> These
-          cookies are strictly necessary to provide you with services available
-          through our website and to use some of its features, such as access to
-          secure areas. Without these cookies, services you have asked for cannot
-          be provided.
-        </li>
-        <li>
-          <strong className="text-slate-900">Authentication Cookies:</strong> We
-          use cookies to identify you when you visit our website and as you
-          navigate our website, and to help us determine if you are logged into
-          our website.
-        </li>
-        <li>
-          <strong className="text-slate-900">Analytics Cookies:</strong> These
-          cookies help us understand how visitors interact with our website by
-          collecting and reporting information anonymously.
-        </li>
-        <li>
-          <strong className="text-slate-900">Preference Cookies:</strong> These
-          cookies enable the website to remember choices you make (such as your
-          preferred language or the region you are in) and provide enhanced, more
-          personal features.
-        </li>
-      </ul>
+      <section className="space-y-4">
+        <h2 className="text-2xl font-bold text-slate-900">3. CATEGORIES OF COOKIES WE USE</h2>
 
-      <h2 className="text-xl font-semibold text-slate-900 mt-8 mb-4">
-        3. Cookies We Use
-      </h2>
-      <div className="overflow-x-auto">
-        <table className="min-w-full text-sm text-slate-600 mt-4">
-          <thead>
-            <tr className="border-b border-slate-200">
-              <th className="text-left py-3 pr-4 font-semibold text-slate-900">Cookie</th>
-              <th className="text-left py-3 pr-4 font-semibold text-slate-900">Provider</th>
-              <th className="text-left py-3 pr-4 font-semibold text-slate-900">Purpose</th>
-              <th className="text-left py-3 font-semibold text-slate-900">Type</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr className="border-b border-slate-100">
-              <td className="py-3 pr-4">__clerk_*</td>
-              <td className="py-3 pr-4">Clerk</td>
-              <td className="py-3 pr-4">Authentication and session management</td>
-              <td className="py-3">Essential</td>
-            </tr>
-            <tr className="border-b border-slate-100">
-              <td className="py-3 pr-4">cookieyes-*</td>
-              <td className="py-3 pr-4">CookieYes</td>
-              <td className="py-3 pr-4">Stores user cookie consent preferences</td>
-              <td className="py-3">Essential</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+        <h3 className="text-xl font-semibold text-slate-900">3.1 Strictly Necessary Cookies (Essential).</h3>
+        <p>
+          These cookies are necessary for the website to function and cannot be switched off in our systems. They are usually only set in response to actions made by you which amount to a request for services, such as logging in or setting your privacy preferences. Under GDPR and CCPA, these do not require your consent, though we inform you of their presence.
+        </p>
+        
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm border-collapse">
+            <thead>
+              <tr className="bg-slate-100 border-b">
+                <th className="p-2 font-semibold text-slate-900">Cookie Name</th>
+                <th className="p-2 font-semibold text-slate-900">Provider</th>
+                <th className="p-2 font-semibold text-slate-900">Purpose</th>
+                <th className="p-2 font-semibold text-slate-900">Duration</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              <tr>
+                <td className="p-2 font-mono text-xs">__session</td>
+                <td className="p-2">Clerk</td>
+                <td className="p-2">Manages your active login session and authentication state.</td>
+                <td className="p-2">Session</td>
+              </tr>
+              <tr>
+                <td className="p-2 font-mono text-xs">__client_uat</td>
+                <td className="p-2">Clerk</td>
+                <td className="p-2">"User Agent Time" - Updates the client on the last security change (e.g., password reset).</td>
+                <td className="p-2">Persistent</td>
+              </tr>
+              <tr>
+                <td className="p-2 font-mono text-xs">__clerk_db_jwt</td>
+                <td className="p-2">Clerk</td>
+                <td className="p-2">Secure token for database synchronization and identity verification.</td>
+                <td className="p-2">Session</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
 
-      <h2 className="text-xl font-semibold text-slate-900 mt-8 mb-4">
-        4. How Can You Control Cookies?
-      </h2>
-      <p className="text-slate-600 leading-relaxed">
-        You have the right to decide whether to accept or reject cookies. You can
-        exercise your cookie preferences by clicking on the &quot;Cookie Settings&quot;
-        link in our website footer.
-      </p>
-      <p className="text-slate-600 leading-relaxed mt-4">
-        You can also set or amend your web browser controls to accept or refuse
-        cookies. If you choose to reject cookies, you may still use our website
-        though your access to some functionality and areas of our website may be
-        restricted.
-      </p>
+        <h3 className="text-xl font-semibold text-slate-900">3.2 Functional & Compliance Cookies.</h3>
+        <p>
+          These cookies enable the website to provide enhanced functionality and personalization. They may be set by us or by third-party providers.
+        </p>
+        
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm border-collapse">
+            <thead>
+              <tr className="bg-slate-100 border-b">
+                <th className="p-2 font-semibold text-slate-900">Cookie Name</th>
+                <th className="p-2 font-semibold text-slate-900">Provider</th>
+                <th className="p-2 font-semibold text-slate-900">Purpose</th>
+                <th className="p-2 font-semibold text-slate-900">Duration</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              <tr>
+                <td className="p-2 font-mono text-xs">osano_consentmanager</td>
+                <td className="p-2">Osano</td>
+                <td className="p-2">Stores your cookie consent preferences (e.g., whether you accepted or declined non-essential cookies) so the banner does not reappear unnecessarily.</td>
+                <td className="p-2">1 Year</td>
+              </tr>
+              <tr>
+                <td className="p-2 font-mono text-xs">osano_consentmanager_uuid</td>
+                <td className="p-2">Osano</td>
+                <td className="p-2">A unique identifier used to log your consent status for compliance auditing.</td>
+                <td className="p-2">1 Year</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
 
-      <h2 className="text-xl font-semibold text-slate-900 mt-8 mb-4">
-        5. How Often Will We Update This Cookie Policy?
-      </h2>
-      <p className="text-slate-600 leading-relaxed">
-        We may update this Cookie Policy from time to time in order to reflect
-        changes to the cookies we use or for other operational, legal, or
-        regulatory reasons. Please therefore revisit this Cookie Policy regularly
-        to stay informed about our use of cookies and related technologies.
-      </p>
+      <section className="space-y-4">
+        <h2 className="text-2xl font-bold text-slate-900">4. MANAGING COOKIES</h2>
+        
+        <h3 className="text-xl font-semibold text-slate-900">4.1 Consent Banner.</h3>
+        <p>
+          When you first visit Spliq, you will be presented with a Cookie Consent Banner (powered by Osano). You can use this banner to review and manage your preferences. Since Spliq currently only uses Strictly Necessary and Compliance cookies, the banner may inform you that these cookies are active for the service to function.
+        </p>
 
-      <h2 className="text-xl font-semibold text-slate-900 mt-8 mb-4">
-        6. Contact Us
-      </h2>
-      <p className="text-slate-600 leading-relaxed">
-        If you have any questions about our use of cookies or other technologies,
-        please email us at{" "}
-        <a
-          href="mailto:sqwatato@gmail.com"
-          className="text-slate-900 underline hover:no-underline"
-        >
-          sqwatato@gmail.com
-        </a>
-        .
-      </p>
-    </article>
+        <h3 className="text-xl font-semibold text-slate-900">4.2 Browser Settings.</h3>
+        <p>
+          Most web browsers allow some control of most cookies through the browser settings. To find out more about how to manage cookies on popular browsers:
+        </p>
+        <ul className="list-disc pl-6 space-y-2 text-blue-600">
+          <li><a href="https://support.google.com/chrome/answer/95647" target="_blank" rel="noopener noreferrer" className="hover:underline">Google Chrome</a></li>
+          <li><a href="https://support.mozilla.org/en-US/kb/enhanced-tracking-protection-firefox-desktop" target="_blank" rel="noopener noreferrer" className="hover:underline">Mozilla Firefox</a></li>
+          <li><a href="https://support.apple.com/guide/safari/manage-cookies-and-website-data-sfri11471/mac" target="_blank" rel="noopener noreferrer" className="hover:underline">Apple Safari</a></li>
+          <li><a href="https://support.microsoft.com/en-us/microsoft-edge/delete-cookies-in-microsoft-edge-63947406-40ac-c2b9-2592-b6632096f9d7" target="_blank" rel="noopener noreferrer" className="hover:underline">Microsoft Edge</a></li>
+        </ul>
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="text-2xl font-bold text-slate-900">5. CHANGES TO THIS COOKIE POLICY</h2>
+        <p>
+          We may update this Cookie Policy from time to time to reflect changes to the cookies we use or for other operational, legal, or regulatory reasons. Please re-visit this Cookie Policy regularly to stay informed about our use of cookies and related technologies.
+        </p>
+      </section>
+    </div>
   );
 }
