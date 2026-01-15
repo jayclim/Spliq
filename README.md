@@ -2,137 +2,176 @@
 
 Spliq is a modern expense-splitting and group-settlement web application built with Next.js. It helps groups track shared expenses, calculate balances, and settle up fairly and transparently.
 
+---
+
 ## ✨ Features
 
-Spliq provides: **IN PROGRESS** — actively developed. This repo is a demo for evaluation and not yet production-ready.
-
-
----
-
-## 🔎 Project snapshot
-
-Divvy provides:
-
-- Group management (create/join groups)
-- Expense creation with multiple participants and split logic
-- Balances & settlement flows
-- Group messaging and notifications
-- AI-assisted expense parsing (planned)
-
-Primary code locations: `app/`, `api/`, `components/`, `lib/`, and `db/`.
+- **Group Management** - Create, join, and manage expense-sharing groups
+- **Smart Expense Splitting** - Split expenses equally or with custom amounts
+- **Real-time Balances** - Track who owes what with automatic calculations
+- **AI Receipt Scanning** - Scan receipts to auto-fill expense details (Pro)
+- **Smart Settlement Links** - One-click payment links for Venmo, Cash App, PayPal (Pro)
+- **Pro Subscriptions** - Premium features via Lemon Squeezy billing
+- **Group Messaging** - In-app chat for group coordination
 
 ---
 
-## ✨ Key features (work-in-progress)
+## 🏗️ Tech Stack
 
-- Group creation & membership
-- Flexible expense entry with participant splits
-- Persistent storage via Supabase
-- Reusable UI primitives in `components/ui/`
-- Initial test coverage (Jest)
-
----
-
-## 🏗️ Tech stack & architecture
-
-- Next.js (App Router)
-- TypeScript
-- Supabase (auth + Postgres)
-- Drizzle ORM
-- TailwindCSS
-- Jest + React Testing Library
-
-Layout overview:
-
-- `app/` — pages & server actions
-- `app/api/` & `api/` — server routes and client API helpers
-- `components/` — UI and containers
-- `lib/` — utilities and domain actions
-- `db/` — schema & migrations
+| Category | Technology |
+|----------|------------|
+| **Framework** | Next.js 15 (App Router) |
+| **Language** | TypeScript |
+| **Styling** | TailwindCSS, Radix UI (Shadcn/ui) |
+| **Database** | PostgreSQL |
+| **ORM** | Drizzle ORM |
+| **Auth** | Clerk |
+| **Payments** | Lemon Squeezy |
+| **AI** | Google Gemini |
+| **Testing** | Jest, React Testing Library |
 
 ---
 
-## ⚡ Quick start (local dev)
+## 📁 Project Structure
 
-Prerequisites: Node.js 16+, and a Supabase project or Postgres DB for full functionality.
+```
+app/               # Next.js App Router pages and layouts
+├── (main)/        # Authenticated app routes
+├── api/           # API Routes (webhooks, etc.)
+└── auth/          # Authentication pages
 
-1) Install dependencies
+api/               # Service Layer - Core business logic
+lib/               # Shared utilities and configurations
+├── actions/       # Server Actions
+├── db/            # Database config and Drizzle schema
+└── auth/          # Auth utilities
 
+components/        # Reusable React components
+scripts/           # Utility scripts (seeding, debugging)
+__tests__/         # Jest test files
+```
+
+---
+
+## ⚡ Quick Start
+
+### Prerequisites
+- Node.js 18+
+- PostgreSQL database
+- Clerk account
+- Lemon Squeezy account (for billing)
+
+### 1. Install dependencies
 ```bash
 npm install
-# or
-pnpm install
 ```
 
-2) Create local env file
-
+### 2. Set up environment variables
 ```bash
 cp .env.example .env.local
-# Edit `.env.local` with your Supabase and (optional) AI provider keys
 ```
 
-3) Run dev server
+Required variables:
+```bash
+# Database
+DATABASE_URL=postgresql://...
 
+# Clerk Authentication
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_...
+CLERK_SECRET_KEY=sk_...
+
+# Lemon Squeezy (Payments)
+LEMONSQUEEZY_API_KEY=...
+LEMONSQUEEZY_STORE_ID=...
+LEMONSQUEEZY_WEBHOOK_SECRET=...
+NEXT_PUBLIC_LEMONSQUEEZY_PRO_MONTHLY_VARIANT_ID=...
+
+# Google Gemini (AI - optional)
+GOOGLE_GENERATIVE_AI_API_KEY=...
+```
+
+### 3. Set up database
+```bash
+npm run db:migrate
+```
+
+### 4. Run development server
 ```bash
 npm run dev
-# or
-pnpm dev
 ```
 
 Open http://localhost:3000
 
-Notes:
-
-- Seed scripts live in `scripts/` (use `scripts/seed-test-data.ts` and `scripts/clean-test-data.ts`).
-- Some flows require Supabase service role keys (server-only). Keep those out of the client.
-
 ---
 
-## 🔐 Environment variables
+## 🧪 Testing
 
-Add required variables to `.env.local` (DO NOT commit secrets):
-
-- SUPABASE_URL
-- SUPABASE_ANON_KEY
-- SUPABASE_SERVICE_ROLE_KEY (server-only)
-- NEXT_PUBLIC_SUPABASE_URL (optional)
-- OPENAI_API_KEY (optional, for AI processing)
-- DATABASE_URL (optional)
-
-Tip: keep a minimal, non-secret `.env.example` in the repo that documents variable names.
-
----
-
-## 🧪 Tests & developer scripts
-
-- Run tests:
-
+### Run all tests
 ```bash
 npm test
 ```
 
-- Seed / clear test data:
-
+### Test with test database
 ```bash
-node ./scripts/seed-test-data.ts
-node ./scripts/clean-test-data.ts
+# Set up test database
+npm run test:reset
+
+# Run dev server with test DB
+npm run dev:test
 ```
 
-There are initial tests in `__tests__/` (e.g., `auth.test.tsx`). Expand coverage before production.
+### Test data scripts
+```bash
+npm run test:seed    # Seed test data
+npm run test:clean   # Clean test data
+```
 
 ---
 
-## 📋 Roadmap & TODOs
+## 💳 Billing Integration
 
-Work-in-progress / upcoming priorities:
+Spliq uses Lemon Squeezy for subscription billing.
 
-- [ ] Finish integrating APIs (auth, groups, expenses, balances, messages)
-- [ ] Implement AI processing (receipt parsing, categorization)
-- [ ] Implement WebSockets for live chat / real-time updates
-- [ ] Add comprehensive tests (unit + integration)
-- [ ] Improve error handling & logging (Sentry or similar)
-- [ ] CI/CD (GitHub Actions) and deployment configuration
-- [ ] Security review & env management (add `.env.example`)
-- [ ] Polish UX and accessibility (a11y, responsive)
+### Webhook Events Handled
+- `subscription_created` - User upgraded to Pro
+- `subscription_updated` - Plan changes
+- `subscription_cancelled` - Keeps Pro until period ends
+- `subscription_expired` - Downgrade to Free
+- `subscription_paused` / `subscription_resumed`
 
+### Testing Billing Locally
+```bash
+# Start ngrok tunnel
+npm run ngrok:setup
 
+# Configure webhook URL in Lemon Squeezy to your ngrok URL
+```
+
+---
+
+## 📋 Key Commands
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start dev server (production DB) |
+| `npm run dev:test` | Start dev server (test DB) |
+| `npm run build` | Build for production |
+| `npm test` | Run Jest tests |
+| `npm run db:migrate` | Run database migrations |
+| `npm run db:studio` | Open Drizzle Studio |
+| `npm run test:reset` | Reset test database |
+
+---
+
+## 🔐 Security
+
+- Webhook signature verification for Lemon Squeezy
+- Clerk-based authentication
+- Server-only database access
+- Environment variable separation (`.env.local` vs `.env.test.local`)
+
+---
+
+## 📄 License
+
+MIT
